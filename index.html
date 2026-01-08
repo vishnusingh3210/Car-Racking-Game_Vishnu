@@ -7,14 +7,8 @@
 <style>
 :root {
     --road: #333;
-    --line: #fff;
-    --player: #f59e0b;
-    --enemy: #ef4444;
     --bg: #111;
     --text: #fff;
-    --coin: #ffd700;
-    --shield: #0ea5e9;
-    --boost: #10b981;
 }
 
 body {
@@ -29,79 +23,40 @@ body {
     overflow: hidden;
 }
 
-.game-box {
-    text-align: center;
-    position: relative;
-}
-
-h1 {
-    margin: 0 0 5px 0;
-}
-
-.stats {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    margin-bottom: 5px;
-}
-
-canvas {
-    background: #222;
-    border-radius: 12px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
-    display: block;
-    margin: auto;
-}
-
-button {
-    margin: 5px 5px 0 0;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    background: #f59e0b;
-    color: #fff;
-    font-weight: bold;
-}
-
-.controls {
-    margin-top: 10px;
-    display: grid;
-    grid-template-columns: repeat(3, 60px);
-    gap: 8px;
-    justify-content: center;
-}
-
-.controls button {
-    padding: 12px;
-}
+.game-box { text-align: center; position: relative; }
+h1 { margin:0 0 5px 0; }
+.stats { display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px; }
+canvas { background:#222; border-radius:12px; box-shadow:0 0 30px rgba(0,0,0,0.5); display:block; margin:auto; }
+button { margin:5px 5px 0 0; padding:6px 12px; border-radius:6px; border:none; cursor:pointer; background:#f59e0b; color:#fff; font-weight:bold; }
+.controls { margin-top:10px; display:grid; grid-template-columns:repeat(3,60px); gap:8px; justify-content:center; }
+.controls button { padding:12px; }
 </style>
 </head>
 <body>
 
 <div class="game-box">
-    <h1>🚗 Ultimate Car Racer</h1>
-    <div class="stats">
-        <div>Score: <span id="score">0</span></div>
-        <div>High: <span id="high">0</span></div>
-        <div>Level: <span id="level">1</span></div>
-    </div>
+<h1>🚗 Ultimate Car Racer</h1>
+<div class="stats">
+    <div>Score: <span id="score">0</span></div>
+    <div>High: <span id="high">0</span></div>
+    <div>Level: <span id="level">1</span></div>
+</div>
 
-    <canvas id="game" width="400" height="600"></canvas>
+<canvas id="game" width="400" height="600"></canvas>
 
-    <div>
-        <button onclick="restartGame()">Restart</button>
-        <button onclick="togglePause()"><span id="pauseText">Pause</span></button>
-        <button onclick="toggleSound()">🔊</button>
-    </div>
+<div>
+    <button onclick="restartGame()">Restart</button>
+    <button onclick="togglePause()"><span id="pauseText">Pause</span></button>
+    <button onclick="toggleSound()">🔊</button>
+</div>
 
-    <div class="controls">
-        <div></div>
-        <button onclick="setDir('LEFT')">⬅️</button>
-        <div></div>
-        <button onclick="setDir('RIGHT')">➡️</button>
-        <div></div>
-    </div>
+<div class="controls">
+    <div></div>
+    <button onclick="setDir('LEFT')">⬅️</button>
+    <div></div>
+    <button onclick="setDir('RIGHT')">➡️</button>
+    <div></div>
+</div>
 </div>
 
 <!-- Sounds -->
@@ -111,239 +66,168 @@ button {
 <audio id="bgMusic" src="https://assets.mixkit.co/music/preview/mixkit-fast-paced-game-music-1263.mp3" loop></audio>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-let player = { x: 180, y: 500, width: 40, height: 80, speed: 5, shield:false };
-let enemies = [], coins=[], powerups=[];
-let roadLines = [];
-let particles = [];
-let score = 0;
-let level = 1;
-let speed = 5;
-let paused = false;
-let soundOn = true;
-let dir = null;
+// Load images
+const playerImg=new Image();
+playerImg.src='https://i.ibb.co/6H8fzFR/player-car.png'; // placeholder
 
-let highScore = localStorage.getItem("carHigh") || 0;
-document.getElementById("high").innerText = highScore;
+const enemyImgs=[
+    'https://i.ibb.co/swmB7kT/enemy1.png',
+    'https://i.ibb.co/YD2yR2R/enemy2.png',
+    'https://i.ibb.co/m5mHkxK/enemy3.png'
+].map(src=>{let img=new Image(); img.src=src; return img; });
 
-// Initialize road lines
+const coinImg=new Image();
+coinImg.src='https://i.ibb.co/7V7cMqV/coin.png';
+
+const shieldImg=new Image();
+shieldImg.src='https://i.ibb.co/ygkRrPR/shield.png';
+
+const boostImg=new Image();
+boostImg.src='https://i.ibb.co/5s5HKrC/boost.png';
+
+// Game variables
+let player={x:180,y:500,width:40,height:80, speed:5, shield:false};
+let enemies=[], coins=[], powerups=[];
+let roadLines=[], particles=[];
+let score=0, level=1, speedVal=5, paused=false, soundOn=true, dir=null;
+let highScore=localStorage.getItem("carHigh")||0;
+document.getElementById("high").innerText=highScore;
+
+// Initialize road
 function initRoad(){
     roadLines=[];
-    for(let i=0;i<20;i++){
-        roadLines.push({x:canvas.width/2-5,y:i*30});
-    }
+    for(let i=0;i<20;i++) roadLines.push({x:canvas.width/2-5,y:i*30});
 }
 
-// Spawn enemies
+// Spawning functions
 function spawnEnemy(){
-    let lane = Math.floor(Math.random()*3);
-    enemies.push({ x: lane*120 + 40, y: -100, width: 40, height: 80 });
+    let lane=Math.floor(Math.random()*3);
+    let img=enemyImgs[Math.floor(Math.random()*enemyImgs.length)];
+    enemies.push({x:lane*120+40,y:-100,width:40,height:80,img});
 }
-
-// Spawn coins
 function spawnCoin(){
-    let lane = Math.floor(Math.random()*3);
-    coins.push({ x: lane*120 + 50, y: -50, width: 20, height: 20 });
+    let lane=Math.floor(Math.random()*3);
+    coins.push({x:lane*120+50,y:-50,width:20,height:20});
 }
-
-// Spawn powerups
 function spawnPowerup(){
-    let lane = Math.floor(Math.random()*3);
-    let type = ['shield','boost'][Math.floor(Math.random()*2)];
-    powerups.push({ x: lane*120 + 40, y: -50, width: 30, height: 30, type });
+    let lane=Math.floor(Math.random()*3);
+    let type=['shield','boost'][Math.floor(Math.random()*2)];
+    powerups.push({x:lane*120+40,y:-50,width:30,height:30,type});
 }
 
-// Draw road
+// Draw functions
 function drawRoad(){
     ctx.fillStyle='#555';
     ctx.fillRect(100,0,200,canvas.height);
     ctx.fillStyle='#fff';
     roadLines.forEach(line=>{
         ctx.fillRect(line.x,line.y,10,30);
-        line.y+=speed;
+        line.y+=speedVal;
         if(line.y>canvas.height) line.y=-30;
     });
 }
-
-// Draw player
 function drawPlayer(){
-    ctx.fillStyle = player.shield? 'cyan' : '#f59e0b';
-    ctx.shadowColor = player.shield? 'cyan':'#f59e0b';
-    ctx.shadowBlur=20;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-    ctx.shadowBlur=0;
-}
-
-// Draw enemies
-function drawEnemies(){
-    ctx.fillStyle='#ef4444';
-    ctx.shadowColor='#ef4444';
-    ctx.shadowBlur=15;
-    enemies.forEach(e=>{
-        ctx.fillRect(e.x,e.y,e.width,e.height);
-        e.y+=speed;
-    });
-    ctx.shadowBlur=0;
-}
-
-// Draw coins
-function drawCoins(){
-    ctx.fillStyle='#ffd700';
-    ctx.shadowColor='#ffd700';
-    ctx.shadowBlur=15;
-    coins.forEach(c=>{
-        ctx.fillRect(c.x,c.y,c.width,c.height);
-        c.y+=speed;
-    });
-    ctx.shadowBlur=0;
-}
-
-// Draw powerups
-function drawPowerups(){
-    powerups.forEach(p=>{
-        ctx.fillStyle=p.type==='shield'? '#0ea5e9':'#10b981';
-        ctx.shadowColor=ctx.fillStyle;
-        ctx.shadowBlur=15;
-        ctx.fillRect(p.x,p.y,p.width,p.height);
-        ctx.shadowBlur=0;
-        p.y+=speed;
-    });
-}
-
-// Collision detection
-function checkCollision(a,b){
-    return !(a.x+a.width<b.x || a.x>b.x+b.width || a.y+a.height<b.y || a.y>b.y+b.height);
-}
-
-// Particle effects
-function spawnParticles(x,y,color){
-    for(let i=0;i<10;i++){
-        particles.push({x,y,dx:(Math.random()-0.5)*2,dy:(Math.random()-1)*2,alpha:1,color});
+    ctx.drawImage(playerImg,player.x,player.y,player.width,player.height);
+    if(player.shield){
+        ctx.strokeStyle='cyan'; ctx.lineWidth=3;
+        ctx.strokeRect(player.x,player.y,player.width,player.height);
     }
 }
-function drawParticles(){
-    particles.forEach((p,i)=>{
-        ctx.fillStyle=`rgba(${p.color},${p.alpha})`;
-        ctx.fillRect(p.x,p.y,4,4);
-        p.x+=p.dx; p.y+=p.dy; p.alpha-=0.03;
-        if(p.alpha<=0) particles.splice(i,1);
-    });
+function drawEnemies(){
+    enemies.forEach(e=>{ ctx.drawImage(e.img,e.x,e.y,e.width,e.height); e.y+=speedVal; });
 }
+function drawCoins(){ coins.forEach(c=>{ ctx.drawImage(coinImg,c.x,c.y,c.width,c.height); c.y+=speedVal; }); }
+function drawPowerups(){ powerups.forEach(p=>{
+    let img=p.type==='shield'?shieldImg:boostImg;
+    ctx.drawImage(img,p.x,p.y,p.width,p.height);
+    p.y+=speedVal;
+}); }
 
-// Main game loop
+// Collision
+function checkCollision(a,b){ return !(a.x+a.width<b.x || a.x>b.x+b.width || a.y+a.height<b.y || a.y>b.y+b.height); }
+
+// Particles
+function spawnParticles(x,y,color){ for(let i=0;i<10;i++){particles.push({x,y,dx:(Math.random()-0.5)*2,dy:(Math.random()-1)*2,alpha:1,color});} }
+function drawParticles(){ particles.forEach((p,i)=>{ ctx.fillStyle=`rgba(${p.color},${p.alpha})`; ctx.fillRect(p.x,p.y,4,4); p.x+=p.dx;p.y+=p.dy;p.alpha-=0.03; if(p.alpha<=0) particles.splice(i,1); }); }
+
+// Game loop
 function draw(){
     if(paused) return;
     ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawRoad(); drawPlayer(); drawEnemies(); drawCoins(); drawPowerups(); drawParticles();
 
-    drawRoad();
-    drawPlayer();
-    drawEnemies();
-    drawCoins();
-    drawPowerups();
-    drawParticles();
-
-    // Move player
     if(dir==='LEFT' && player.x>100) player.x-=player.speed;
     if(dir==='RIGHT' && player.x+player.width<300) player.x+=player.speed;
     dir=null;
 
-    // Check collisions with enemies
     enemies.forEach((e,i)=>{
         if(checkCollision(player,e)){
             if(!player.shield){
                 if(soundOn) document.getElementById("crashSound").play();
                 spawnParticles(player.x+player.width/2,player.y+player.height/2,'255,0,0');
                 gameOver();
-            }else{
-                enemies.splice(i,1);
-                player.shield=false;
-            }
-        }
-        if(e.y>canvas.height) enemies.splice(i,1);
+            }else{ enemies.splice(i,1); player.shield=false; }
+        } else if(e.y>canvas.height) enemies.splice(i,1);
     });
 
-    // Coins
     coins.forEach((c,i)=>{
-        if(checkCollision(player,c)){
-            score+=1;
-            if(soundOn) document.getElementById("coinSound").play();
-            coins.splice(i,1);
-        }else if(c.y>canvas.height) coins.splice(i,1);
+        if(checkCollision(player,c)){ score++; if(soundOn) document.getElementById("coinSound").play(); coins.splice(i,1); }
+        else if(c.y>canvas.height) coins.splice(i,1);
     });
 
-    // Powerups
     powerups.forEach((p,i)=>{
         if(checkCollision(player,p)){
             if(p.type==='shield') player.shield=true;
-            else if(p.type==='boost') speed+=3;
+            else if(p.type==='boost') speedVal+=3;
             if(soundOn && p.type==='boost') document.getElementById("boostSound").play();
             powerups.splice(i,1);
-        }else if(p.y>canvas.height) powerups.splice(i,1);
+        } else if(p.y>canvas.height) powerups.splice(i,1);
     });
 
-    // Update score and level
     document.getElementById("score").innerText=score;
-    level = Math.floor(score/10)+1;
+    level=Math.floor(score/10)+1;
     document.getElementById("level").innerText=level;
-
-    // Increase speed dynamically
-    speed = 5 + Math.floor(score/10);
+    speedVal=5+Math.floor(score/10);
 
     requestAnimationFrame(draw);
 }
 
 // Game over
 function gameOver(){
-    if(score>highScore){
-        highScore=score;
-        localStorage.setItem("carHigh",highScore);
-        document.getElementById("high").innerText=highScore;
-    }
+    if(score>highScore){ highScore=score; localStorage.setItem("carHigh",highScore); document.getElementById("high").innerText=highScore; }
     alert("Game Over! Score: "+score);
     restartGame();
 }
 
 // Restart
-function restartGame(){
-    player.x=180; player.y=500; player.shield=false;
-    enemies=[]; coins=[]; powerups=[]; particles=[];
-    score=0; speed=5;
-}
+function restartGame(){ player.x=180; player.y=500; player.shield=false; enemies=[]; coins=[]; powerups=[]; particles=[]; score=0; speedVal=5; }
 
-// Pause toggle
-function togglePause(){
-    paused=!paused;
-    document.getElementById("pauseText").innerText=paused?'Resume':'Pause';
-}
-
-// Sound toggle
+// Pause
+function togglePause(){ paused=!paused; document.getElementById("pauseText").innerText=paused?'Resume':'Pause'; }
+// Sound
 function toggleSound(){ soundOn=!soundOn; if(soundOn) document.getElementById("bgMusic").play(); else document.getElementById("bgMusic").pause(); }
-
 // Direction
 function setDir(d){ dir=d; }
 
-// Spawning intervals
+// Spawn intervals
 setInterval(spawnEnemy,1500);
 setInterval(spawnCoin,2000);
 setInterval(spawnPowerup,8000);
 
-// Initialize road
+// Road
 initRoad();
 
-// Play background music
+// Music
 document.getElementById("bgMusic").volume=0.2;
 if(soundOn) document.getElementById("bgMusic").play();
 
-// Mobile swipe controls
+// Mobile swipe
 let touchStartX=0;
 canvas.addEventListener("touchstart",e=>{touchStartX=e.changedTouches[0].screenX;});
-canvas.addEventListener("touchend",e=>{
-    let dx=e.changedTouches[0].screenX-touchStartX;
-    if(dx>0) setDir('RIGHT');
-    else if(dx<0) setDir('LEFT');
-});
+canvas.addEventListener("touchend",e=>{ let dx=e.changedTouches[0].screenX-touchStartX; if(dx>0) setDir('RIGHT'); else if(dx<0) setDir('LEFT'); });
 
 // Start game loop
 requestAnimationFrame(draw);
