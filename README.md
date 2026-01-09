@@ -10,4 +10,4 @@ Supports desktop and mobile gameplay.
 - Responsive design
 
 ## Live Demo
-https://vishnusingh3210.github.io/car-racing-game/
+https://vishnusingh3210.github.io/Car-Racking-Game_Vishnu/
