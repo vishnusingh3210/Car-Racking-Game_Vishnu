@@ -45,7 +45,7 @@ button {
     font-size: 14px;
 }
 
-/* Mobile Controls */
+/* Mobile controls */
 .mobile-controls {
     margin-top: 12px;
     display: flex;
@@ -54,17 +54,14 @@ button {
 }
 
 .mobile-controls button {
-    width: 100px;
-    height: 50px;
-    font-size: 22px;
-    border-radius: 10px;
-    background: #22c55e;
-    border: none;
-    font-weight: bold;
-    touch-action: none;   /* 🔥 REQUIRED FOR MOBILE */
+    width: 120px;
+    height: 55px;
+    font-size: 24px;
+    border-radius: 12px;
+    touch-action: manipulation; /* ✅ correct, not none */
 }
 
-/* Hide touch buttons on desktop */
+/* Hide on desktop */
 @media (min-width: 768px) {
     .mobile-controls {
         display: none;
@@ -85,7 +82,7 @@ button {
 
     <canvas id="game" width="400" height="600"></canvas>
 
-    <!-- Mobile Touch Controls -->
+    <!-- Mobile Buttons -->
     <div class="mobile-controls">
         <button id="leftBtn">⬅️</button>
         <button id="rightBtn">➡️</button>
@@ -106,9 +103,6 @@ let dir = 0;
 let high = localStorage.getItem("carHigh") || 0;
 document.getElementById("high").innerText = high;
 
-// Prevent page scroll on mobile
-document.body.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
-
 // Player
 const player = {
     x: 180,
@@ -128,13 +122,9 @@ function drawCar(x, y, w, h, color) {
     ctx.fillStyle = "#94a3b8";
     ctx.fillRect(x + 8, y + 10, w - 16, 18);
     ctx.fillRect(x + 8, y + h - 30, w - 16, 18);
-
-    ctx.fillStyle = "#fde047";
-    ctx.fillRect(x + 5, y + 2, 8, 6);
-    ctx.fillRect(x + w - 13, y + 2, 8, 6);
 }
 
-// Spawn enemies
+// Spawn enemy
 function spawnEnemy() {
     let lane = Math.floor(Math.random() * 3);
     enemies.push({
@@ -152,29 +142,31 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", () => dir = 0);
 
-// ✅ MOBILE BUTTON FIX (POINTER EVENTS)
+// ✅ MOBILE TOUCH CONTROLS (WORKING)
 const leftBtn = document.getElementById("leftBtn");
 const rightBtn = document.getElementById("rightBtn");
 
-leftBtn.addEventListener("pointerdown", () => dir = -1);
-leftBtn.addEventListener("pointerup", () => dir = 0);
-leftBtn.addEventListener("pointerleave", () => dir = 0);
+function bindButton(btn, direction) {
+    btn.addEventListener("touchstart", e => {
+        e.preventDefault();
+        dir = direction;
+    }, { passive: false });
 
-rightBtn.addEventListener("pointerdown", () => dir = 1);
-rightBtn.addEventListener("pointerup", () => dir = 0);
-rightBtn.addEventListener("pointerleave", () => dir = 0);
+    btn.addEventListener("touchend", e => {
+        e.preventDefault();
+        dir = 0;
+    }, { passive: false });
 
-// Click fallback (extra safety)
-leftBtn.addEventListener("click", () => {
-    dir = -1;
-    setTimeout(() => dir = 0, 100);
-});
-rightBtn.addEventListener("click", () => {
-    dir = 1;
-    setTimeout(() => dir = 0, 100);
-});
+    // Mouse fallback
+    btn.addEventListener("mousedown", () => dir = direction);
+    btn.addEventListener("mouseup", () => dir = 0);
+    btn.addEventListener("mouseleave", () => dir = 0);
+}
 
-// Draw road
+bindButton(leftBtn, -1);
+bindButton(rightBtn, 1);
+
+// Road
 function drawRoad() {
     ctx.fillStyle = "#334155";
     ctx.fillRect(80, 0, 240, canvas.height);
@@ -225,7 +217,6 @@ function game() {
     requestAnimationFrame(game);
 }
 
-// Restart
 function restart() {
     enemies = [];
     score = 0;
