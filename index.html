@@ -58,9 +58,13 @@ button {
     height: 50px;
     font-size: 22px;
     border-radius: 10px;
+    background: #22c55e;
+    border: none;
+    font-weight: bold;
+    touch-action: none;   /* 🔥 REQUIRED FOR MOBILE */
 }
 
-/* Hide buttons on desktop */
+/* Hide touch buttons on desktop */
 @media (min-width: 768px) {
     .mobile-controls {
         display: none;
@@ -81,10 +85,10 @@ button {
 
     <canvas id="game" width="400" height="600"></canvas>
 
-    <!-- Mobile Touch Buttons -->
+    <!-- Mobile Touch Controls -->
     <div class="mobile-controls">
-        <button ontouchstart="dir = -1" ontouchend="dir = 0">⬅️</button>
-        <button ontouchstart="dir = 1" ontouchend="dir = 0">➡️</button>
+        <button id="leftBtn">⬅️</button>
+        <button id="rightBtn">➡️</button>
     </div>
 
     <button onclick="restart()">Restart</button>
@@ -102,10 +106,10 @@ let dir = 0;
 let high = localStorage.getItem("carHigh") || 0;
 document.getElementById("high").innerText = high;
 
-// Prevent mobile scrolling while playing
-document.body.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+// Prevent page scroll on mobile
+document.body.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
 
-// Player car
+// Player
 const player = {
     x: 180,
     y: 480,
@@ -130,7 +134,7 @@ function drawCar(x, y, w, h, color) {
     ctx.fillRect(x + w - 13, y + 2, 8, 6);
 }
 
-// Spawn enemy cars
+// Spawn enemies
 function spawnEnemy() {
     let lane = Math.floor(Math.random() * 3);
     enemies.push({
@@ -148,6 +152,28 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", () => dir = 0);
 
+// ✅ MOBILE BUTTON FIX (POINTER EVENTS)
+const leftBtn = document.getElementById("leftBtn");
+const rightBtn = document.getElementById("rightBtn");
+
+leftBtn.addEventListener("pointerdown", () => dir = -1);
+leftBtn.addEventListener("pointerup", () => dir = 0);
+leftBtn.addEventListener("pointerleave", () => dir = 0);
+
+rightBtn.addEventListener("pointerdown", () => dir = 1);
+rightBtn.addEventListener("pointerup", () => dir = 0);
+rightBtn.addEventListener("pointerleave", () => dir = 0);
+
+// Click fallback (extra safety)
+leftBtn.addEventListener("click", () => {
+    dir = -1;
+    setTimeout(() => dir = 0, 100);
+});
+rightBtn.addEventListener("click", () => {
+    dir = 1;
+    setTimeout(() => dir = 0, 100);
+});
+
 // Draw road
 function drawRoad() {
     ctx.fillStyle = "#334155";
@@ -163,7 +189,7 @@ function drawRoad() {
     ctx.setLineDash([]);
 }
 
-// Collision detection
+// Collision
 function hit(a, b) {
     return !(a.x + a.w < b.x || a.x > b.x + b.w ||
              a.y + a.h < b.y || a.y > b.y + b.h);
@@ -183,9 +209,7 @@ function game() {
         drawCar(e.x, e.y, e.w, e.h, "#ef4444");
 
         if (hit(player, e)) {
-            if (score > high) {
-                localStorage.setItem("carHigh", score);
-            }
+            if (score > high) localStorage.setItem("carHigh", score);
             alert("Game Over! Score: " + score);
             restart();
         }
@@ -201,7 +225,7 @@ function game() {
     requestAnimationFrame(game);
 }
 
-// Restart game
+// Restart
 function restart() {
     enemies = [];
     score = 0;
